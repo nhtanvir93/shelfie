@@ -10,7 +10,7 @@ import {
 
 import { CreateEntityResult, Result } from "../constants/Result"
 import { BOOK_COLLECTION, DATABASE_ID } from "../constants/Database"
-import { databases } from "../lib/appwrite"
+import { client, databases } from "../lib/appwrite"
 import useUser from "../hooks/useUser"
 
 export type Book = Models.Document & {
@@ -153,7 +153,20 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
+    if (!user) return
+
     fetchAllBooks()
+
+    const channel = `databases.${DATABASE_ID}.collections.${BOOK_COLLECTION}.documents`
+
+    const unsubscribe = client.subscribe<Book>(channel, ({ payload, events }) => {
+      if (events[0].includes("create")) {
+        setBooks((prev) => [...prev, payload])
+      }
+    })
+
+    return unsubscribe
+
   }, [user])
 
   return (
