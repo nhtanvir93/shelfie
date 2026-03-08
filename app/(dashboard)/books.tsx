@@ -9,11 +9,7 @@ import ThemedText from '../../components/ThemedText'
 import { Colors } from '../../constants/Colors'
 
 const Books = () => {
-  const {books, fetchAllBooks} = useBook()
-
-  useEffect(() => {
-    fetchAllBooks()
-  }, [])
+  const {books} = useBook()
 
   return (
     <ThemedView safe style={styles.container}>
