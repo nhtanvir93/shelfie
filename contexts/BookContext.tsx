@@ -4,7 +4,7 @@ import React, {
   useCallback,
   useState
 } from "react"
-import { ID, Models, Query } from "react-native-appwrite"
+import { AppwriteException, ID, Models, Query } from "react-native-appwrite"
 import { CreateEntityResult, Result } from "../constants/Result"
 import { BOOK_COLLECTION, DATABASE_ID } from "../constants/Database"
 import { databases } from "../lib/appwrite"
@@ -76,10 +76,11 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
 
       return { success: true, documentId: book.$id }
     } catch (error) {
-      return {
-        success: false,
-        message: "Failed to create book"
-      }
+        if (error instanceof AppwriteException) {
+            return { success: false, message: error.response || error.message }
+        }
+
+        return { success: false, message: "Failed to create the book" }
     }
   }, [])
 
@@ -96,10 +97,11 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
       return { success: true }
 
       } catch (error) {
-        return {
-          success: false,
-          message: "Failed to update book"
+        if (error instanceof AppwriteException) {
+            return { success: false, message: error.response || error.message }
         }
+
+        return { success: false, message: "Failed to update the book" }
       }
     },
     []
@@ -115,10 +117,11 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
 
         return { success: true }
     } catch (error) {
-      return {
-        success: false,
-        message: "Failed to delete book"
-      }
+        if (error instanceof AppwriteException) {
+            return { success: false, message: error.response || error.message }
+        }
+
+        return { success: false, message: "Failed to delete the book" }
     }
   }, [])
 
