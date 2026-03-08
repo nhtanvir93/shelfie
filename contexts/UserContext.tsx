@@ -1,14 +1,7 @@
 import { createContext, ReactNode, useEffect, useState } from "react"
 import { account } from "../lib/appwrite"
 import { AppwriteException, ID, Models } from "react-native-appwrite"
-import { router } from "expo-router"
-
-type Result = {
-    success: true
-} | {
-    success: false,
-    message: string
-}
+import { Result } from "../constants/Result";
 
 type UserContextType = {
   user: Models.User | null | undefined;

@@ -3,7 +3,7 @@ import React from 'react'
 import { Stack } from 'expo-router'
 import { Colors } from '../constants/Colors'
 import { UserProvider } from '../contexts/UserContext'
-import GuestOnly from '../components/auth/GuestOnly'
+import { BookProvider } from '../contexts/BookContext'
 
 const RootLayout = () => {
     const colorScheme = useColorScheme()
@@ -11,14 +11,16 @@ const RootLayout = () => {
 
     return (
         <UserProvider>
-            <Stack screenOptions={{
-                headerStyle: {backgroundColor: theme.navBackground},
-                headerTintColor: theme.title
-            }}>
-                <Stack.Screen name='index' options={{title: 'Home'}} />
-                <Stack.Screen name='(auth)' options={{headerShown: false}} />
-                <Stack.Screen name='(dashboard)' options={{headerShown: false}} />
-            </Stack>
+            <BookProvider>
+                <Stack screenOptions={{
+                    headerStyle: {backgroundColor: theme.navBackground},
+                    headerTintColor: theme.title
+                }}>
+                    <Stack.Screen name='index' options={{title: 'Home'}} />
+                    <Stack.Screen name='(auth)' options={{headerShown: false}} />
+                    <Stack.Screen name='(dashboard)' options={{headerShown: false}} />
+                </Stack>
+            </BookProvider>
         </UserProvider>
     )
 }
