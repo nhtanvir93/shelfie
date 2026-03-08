@@ -32,6 +32,10 @@ const Create = () => {
     })
 
     if(result.success) {
+      setTitle('')
+      setAuthor('')
+      setDescription('')
+      
       router.replace('/books')
     } else {
       setError(result.message)

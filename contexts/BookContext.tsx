@@ -1,11 +1,13 @@
-import React, {
-  createContext,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useState
-} from "react"
-import { AppwriteException, ID, Models, Permission, Query, Role } from "react-native-appwrite"
+import React, { createContext, ReactNode, useEffect, useState } from "react"
+import {
+  AppwriteException,
+  ID,
+  Models,
+  Permission,
+  Query,
+  Role
+} from "react-native-appwrite"
+
 import { CreateEntityResult, Result } from "../constants/Result"
 import { BOOK_COLLECTION, DATABASE_ID } from "../constants/Database"
 import { databases } from "../lib/appwrite"
@@ -23,8 +25,8 @@ export type UpdateBook = Partial<CreateBook>
 
 type BookContextType = {
   books: Book[]
-  fetchAllBooks: () => void
-  fetchBookById: (bookId: string) => void
+  fetchAllBooks: () => Promise<void>
+  fetchBookById: (bookId: string) => Promise<Book | undefined>
   createBook: (data: CreateBook) => Promise<CreateEntityResult>
   updateBook: (bookId: string, data: UpdateBook) => Promise<Result>
   deleteBook: (bookId: string) => Promise<Result>
@@ -34,45 +36,43 @@ export const BookContext = createContext<BookContextType | undefined>(undefined)
 
 export const BookProvider = ({ children }: { children: ReactNode }) => {
   const [books, setBooks] = useState<Book[]>([])
-  const {user} = useUser()
+  const { user } = useUser()
 
-  const fetchAllBooks = useCallback(async () => {
-    if(!user) {
-        return setBooks([])
+  const fetchAllBooks = async () => {
+    if (!user) {
+      setBooks([])
+      return
     }
 
-    const response = await databases.listDocuments<Book>({
+    try {
+      const response = await databases.listDocuments<Book>({
         databaseId: DATABASE_ID,
         collectionId: BOOK_COLLECTION,
-        queries: [
-            Query.equal('userId', user.$id)
-        ]
-    })
+        queries: [Query.equal("userId", user.$id)]
+      })
 
-    const allBooks = response.documents
-    setBooks(allBooks)
-  }, [books])
+      setBooks(response.documents)
+    } catch (error) {
+      console.log("Fetch books failed", error)
+    }
+  }
 
-  const fetchBookById = useCallback(
-    async (bookId: string) => {
-        if(!user) {
-            return setBooks([])
-        }
+  const fetchBookById = async (bookId: string) => {
+    if (!user) return
 
-        const book = await databases.getDocument<Book>({
-            databaseId: DATABASE_ID,
-            collectionId: BOOK_COLLECTION,
-            documentId: bookId
-        })
+    try {
+      return await databases.getDocument<Book>({
+        databaseId: DATABASE_ID,
+        collectionId: BOOK_COLLECTION,
+        documentId: bookId
+      })
+    } catch (error) {
+    }
+  }
 
-      setBooks([book])
-    },
-    [books]
-  )
-
-  const createBook = useCallback(async (data: CreateBook): Promise<CreateEntityResult> => {
-    if(!user) {
-        return { success: false, message: "Failed to create the book" }
+  const createBook = async (data: CreateBook): Promise<CreateEntityResult> => {
+    if (!user) {
+      return { success: false, message: "User not authenticated" }
     }
 
     try {
@@ -80,28 +80,36 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
         databaseId: DATABASE_ID,
         collectionId: BOOK_COLLECTION,
         documentId: ID.unique(),
-        data: { ...data, userId: user.$id },
+        data: {
+          ...data,
+          userId: user.$id
+        },
         permissions: [
-            Permission.read(Role.user(user.$id)),
-            Permission.update(Role.user(user.$id)),
-            Permission.delete(Role.user(user.$id))
+          Permission.read(Role.user(user.$id)),
+          Permission.update(Role.user(user.$id)),
+          Permission.delete(Role.user(user.$id))
         ]
       })
 
       return { success: true, documentId: book.$id }
     } catch (error) {
-        if (error instanceof AppwriteException) {
-            return { success: false, message: error.response || error.message }
+      if (error instanceof AppwriteException) {
+        return {
+          success: false,
+          message: error.response || error.message
         }
+      }
 
-        return { success: false, message: "Failed to create the book" }
+      return { success: false, message: "Failed to create book" }
     }
-  }, [])
+  }
 
-  const updateBook = useCallback(
-    async (bookId: string, data: UpdateBook): Promise<Result> => {
-      try {
-        await databases.updateDocument<Book>({
+  const updateBook = async (
+    bookId: string,
+    data: UpdateBook
+  ): Promise<Result> => {
+    try {
+      await databases.updateDocument<Book>({
         databaseId: DATABASE_ID,
         collectionId: BOOK_COLLECTION,
         documentId: bookId,
@@ -109,35 +117,40 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
       })
 
       return { success: true }
-
-      } catch (error) {
-        if (error instanceof AppwriteException) {
-            return { success: false, message: error.response || error.message }
-        }
-
-        return { success: false, message: "Failed to update the book" }
-      }
-    },
-    []
-  )
-
-  const deleteBook = useCallback(async (bookId: string): Promise<Result> => {
-    try {
-        await databases.deleteDocument({
-            databaseId: DATABASE_ID,
-            collectionId: BOOK_COLLECTION,
-            documentId: bookId
-        })
-
-        return { success: true }
     } catch (error) {
-        if (error instanceof AppwriteException) {
-            return { success: false, message: error.response || error.message }
+      if (error instanceof AppwriteException) {
+        return {
+          success: false,
+          message: error.response || error.message
         }
+      }
 
-        return { success: false, message: "Failed to delete the book" }
+      return { success: false, message: "Failed to update book" }
     }
-  }, [])
+  }
+
+  const deleteBook = async (bookId: string): Promise<Result> => {
+    try {
+      await databases.deleteDocument({
+        databaseId: DATABASE_ID,
+        collectionId: BOOK_COLLECTION,
+        documentId: bookId
+      })
+
+      setBooks((prev) => prev.filter((b) => b.$id !== bookId))
+
+      return { success: true }
+    } catch (error) {
+      if (error instanceof AppwriteException) {
+        return {
+          success: false,
+          message: error.response || error.message
+        }
+      }
+
+      return { success: false, message: "Failed to delete book" }
+    }
+  }
 
   useEffect(() => {
     fetchAllBooks()
