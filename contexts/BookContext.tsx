@@ -34,7 +34,7 @@ export const BookContext = createContext<BookContextType | undefined>(undefined)
 
 export const BookProvider = ({ children }: { children: ReactNode }) => {
   const [books, setBooks] = useState<Book[]>([])
-  const {user} = useUser();
+  const {user} = useUser()
 
   const fetchAllBooks = useCallback(async () => {
     if(!user) {
@@ -62,10 +62,7 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
         const book = await databases.getDocument<Book>({
             databaseId: DATABASE_ID,
             collectionId: BOOK_COLLECTION,
-            documentId: bookId, 
-            queries: [
-                Query.equal('userId', user.$id)
-            ]
+            documentId: bookId
         })
 
       setBooks([book])

@@ -3,14 +3,15 @@ import React from 'react'
 import { Colors } from '../constants/Colors'
 
 interface Props extends PressableProps {
-    style: StyleProp<ViewStyle>
+    style?: StyleProp<ViewStyle>
 }
 
-const ThemedButton = ({onPress, style: customStyle, children, ...props}: Props) => {
+const ThemedButton = ({onPress, disabled, style: customStyle, children, ...props}: Props) => {
   return (
     <Pressable
+        disabled={disabled}
         onPress={onPress}
-        style={({pressed}) => [styles.btn, pressed && styles.pressed, customStyle]}
+        style={({ pressed }) => [styles.btn, pressed && styles.pressed, customStyle]}
         {...props}
     >
         {children}
@@ -34,5 +35,9 @@ const styles = StyleSheet.create({
     btnLabel: {
         color: '#f2f2f2', 
         textAlign: 'center'
+    },
+    disabledButton: {
+        backgroundColor: '#d3d3d3',
+        opacity: 0.8
     }
 })
