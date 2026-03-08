@@ -2,9 +2,10 @@ import React, {
   createContext,
   ReactNode,
   useCallback,
+  useEffect,
   useState
 } from "react"
-import { AppwriteException, ID, Models, Query } from "react-native-appwrite"
+import { AppwriteException, ID, Models, Permission, Query, Role } from "react-native-appwrite"
 import { CreateEntityResult, Result } from "../constants/Result"
 import { BOOK_COLLECTION, DATABASE_ID } from "../constants/Database"
 import { databases } from "../lib/appwrite"
@@ -17,7 +18,7 @@ export type Book = Models.Document & {
   userId: string
 }
 
-export type CreateBook = Pick<Book, "title" | "author" | "description" | "userId">
+export type CreateBook = Pick<Book, "title" | "author" | "description">
 export type UpdateBook = Partial<CreateBook>
 
 type BookContextType = {
@@ -54,11 +55,18 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchBookById = useCallback(
     async (bookId: string) => {
-      const book = await databases.getDocument<Book>({
-        databaseId: DATABASE_ID,
-        collectionId: BOOK_COLLECTION,
-        documentId: bookId
-      })
+        if(!user) {
+            return setBooks([])
+        }
+
+        const book = await databases.getDocument<Book>({
+            databaseId: DATABASE_ID,
+            collectionId: BOOK_COLLECTION,
+            documentId: bookId, 
+            queries: [
+                Query.equal('userId', user.$id)
+            ]
+        })
 
       setBooks([book])
     },
@@ -66,12 +74,21 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
   )
 
   const createBook = useCallback(async (data: CreateBook): Promise<CreateEntityResult> => {
+    if(!user) {
+        return { success: false, message: "Failed to create the book" }
+    }
+
     try {
       const book = await databases.createDocument<Book>({
         databaseId: DATABASE_ID,
         collectionId: BOOK_COLLECTION,
         documentId: ID.unique(),
-        data
+        data: { ...data, userId: user.$id },
+        permissions: [
+            Permission.read(Role.user(user.$id)),
+            Permission.update(Role.user(user.$id)),
+            Permission.delete(Role.user(user.$id))
+        ]
       })
 
       return { success: true, documentId: book.$id }
@@ -124,6 +141,10 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, message: "Failed to delete the book" }
     }
   }, [])
+
+  useEffect(() => {
+    fetchAllBooks()
+  }, [user])
 
   return (
     <BookContext.Provider
